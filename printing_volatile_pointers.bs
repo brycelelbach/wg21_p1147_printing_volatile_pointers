@@ -6,14 +6,14 @@ Distributed under the Boost Software License v1.0 (boost.org/LICENSE_1_0.txt)
 -->
 <pre class='metadata'>
 Title: Printing <code>volatile</code> Pointers
-Shortname: D????
+Shortname: D1147
 Revision: 0
 Status: D
 Group: WG21
 Audience: LEWG
-URL: https://wg21.link/D????R0
-!Source: <a href="https://github.com/brycelelbach/wg21_p????_printing_volatile_pointers/blob/master/printing_volatile_pointers.bs">github.com/wg21_p????_printing_volatile_pointers/blob/master/printing_volatile_pointers.bs</a>
-Issue Tracking: GitHub https://github.com/brycelelbach/wg21_p????_printing_volatile_pointers/issues
+URL: https://wg21.link/D1147R0
+!Source: <a href="https://github.com/brycelelbach/wg21_p1147_printing_volatile_pointers/blob/master/printing_volatile_pointers.bs">github.com/wg21_p1147_printing_volatile_pointers/blob/master/printing_volatile_pointers.bs</a>
+Issue Tracking: GitHub https://github.com/brycelelbach/wg21_p1147_printing_volatile_pointers/issues
 Editor: Bryce Adelstein Lelbach, NVIDIA https://nvidia.com, brycelelbach@gmail.com
 Markup Shorthands: markdown yes
 No Abstract: yes
