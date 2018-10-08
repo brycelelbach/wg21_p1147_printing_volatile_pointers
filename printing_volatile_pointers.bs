@@ -5,19 +5,20 @@ Author: Bryce Adelstein Lelbach <brycelelbach@gmail.com>
 Distributed under the Boost Software License v1.0 (boost.org/LICENSE_1_0.txt)
 -->
 <pre class='metadata'>
-Title: Printing <code>volatile</code> Pointers
-Shortname: D1147
+Title: Printing `volatile` Pointers
+H1: Printing <code>volatile</code> Pointers
+Shortname: P1147
 Revision: 0
-Status: D
+Status: P
 Group: WG21
 Audience: LEWG
-URL: https://wg21.link/D1147R0
+URL: https://wg21.link/P1147R0
 !Source: <a href="https://github.com/brycelelbach/wg21_p1147_printing_volatile_pointers/blob/master/printing_volatile_pointers.bs">github.com/wg21_p1147_printing_volatile_pointers/blob/master/printing_volatile_pointers.bs</a>
 Issue Tracking: GitHub https://github.com/brycelelbach/wg21_p1147_printing_volatile_pointers/issues
 Editor: Bryce Adelstein Lelbach, NVIDIA https://nvidia.com, brycelelbach@gmail.com
 Markup Shorthands: markdown yes
 No Abstract: yes
-Toggle Diffs: yes
+Toggle Diffs: no
 Boilerplate: style-syntax-highlighting off
 </pre>
 
@@ -87,7 +88,7 @@ div.newnumbered li:before {
 
 # Introduction # {#intro}
 
-Streaming pointers to `volatile` types to standard library output streams has
+Printing pointers to `volatile` types with standard library output streams has
 unexpected results.
 Consider the following code:
 
@@ -138,152 +139,28 @@ namespace std {
 
 For `std::cout << p0`, `p0` (an `int*`) is implicitly converted to `const
 void*` and `operator<<(const void*)` is called.
-For `std::cout << p1`, `p1` (a `volatile int*`) is implicitly converted to
+However, for `std::cout << p1`, the `operator<<(const void*)` overload is not a
+match, as it discards qualifiers. Instead, the best match is
+`operator<<(bool)`, so `p1` (a `volatile int*`) is implicitly converted to
 `bool` and `operator<<(bool)` is called.
 
-I suggest we change `basic_ostream`'s `operator<<(const void*)` overload to
-`operator<<(const volatile void*)`.
-This new signature will be a better match for a `volatile` qualified pointer
-than `operator<<(bool)`, and will still work for non `volatile` qualified
-pointers because <a href="http://eel.is/c++draft/conv.qual#4">a prvalue pointer
-type can be converted to a prvalue pointer to a more cv-qualified type</a>.
-This is **NOT** an ABI-breaking change; vendors can implement this change by
-leaving their existing `operator<<(const void*)` overload as is and adding a
-new `operator<<(const volatile void*)` overload.
-If LWG prefers, this change could alternatively be worded as adding a new
-`operator<<(const void*)` overload.
+I suggest we add a new `operator<<(const volatile void*)` overload that
+`const_cast`s away `volatile` and calls the `operator<<(const void*)`
+overload.
+Initially, I explored modifying the underlying `<locale>` methods and changing
+the existing `operator<<(const void*)` to `operator<<(const volatile void*)`,
+however, early feedback from other committee members pushed me away from this
+direction, as there was concern that modifying `<locale>` would be an ABI
+breaking change.
+
+Note that `const_cast`ing away `volatile` is safe here.
+We are not accessing or printing the value of the object that the pointer
+points to, we are just printing the value of the pointer itself.
 
 # Wording # {#wording}
 
-NOTE: The proposed changes are relative to the working draft of ISO/IEC IS
-14882, the international standard for the C++ programming language.
-
 NOTE: The � character is used to denote a placeholder section number which the
 editor shall determine.
-
-Modify <a href="http://eel.is/c++draft/locale.nm.put">[**locale.nm.put**]</a> as follows:
-
-<blockquote>
-<b>26.4.2.2 Class template `num_put` <span style="float: right;">[locale.nm.put]</span></b>
-
-<xmp>
-namespace std {
-  template<class charT, class OutputIterator = ostreambuf_iterator<charT>>
-    class num_put : public locale::facet {
-    public:
-      using char_type = charT;
-      using iter_type = OutputIterator;
- 
-      explicit num_put(size_t refs = 0);
- 
-</xmp>
-<pre><code>
-      iter_type put(iter_type s, ios_base&amp; f, char_type fill, bool v) const;
-      iter_type put(iter_type s, ios_base&amp; f, char_type fill, long v) const;
-      iter_type put(iter_type s, ios_base&amp; f, char_type fill, long long v) const;
-      iter_type put(iter_type s, ios_base&amp; f, char_type fill, unsigned long v) const;
-      iter_type put(iter_type s, ios_base&amp; f, char_type fill, unsigned long long v) const;
-      iter_type put(iter_type s, ios_base&amp; f, char_type fill, double v) const;
-      iter_type put(iter_type s, ios_base&amp; f, char_type fill, long double v) const;
-      iter_type put(iter_type s, ios_base&amp; f, char_type fill, const<span class="ins"> volatile</span> void* v) const;
- 
-      static locale::id id;
- 
-    protected:
-      ~num_put();
-      virtual iter_type do_put(iter_type, ios_base&amp;, char_type fill, bool v) const;
-      virtual iter_type do_put(iter_type, ios_base&amp;, char_type fill, long v) const;
-      virtual iter_type do_put(iter_type, ios_base&amp;, char_type fill, long long v) const;
-      virtual iter_type do_put(iter_type, ios_base&amp;, char_type fill, unsigned long) const;
-      virtual iter_type do_put(iter_type, ios_base&amp;, char_type fill, unsigned long long) const;
-      virtual iter_type do_put(iter_type, ios_base&amp;, char_type fill, double v) const;
-      virtual iter_type do_put(iter_type, ios_base&amp;, char_type fill, long double v) const;
-      virtual iter_type do_put(iter_type, ios_base&amp;, char_type fill, const<span class="ins"> volatile</span> void* v) const;
-    };
-}
-</code></pre>
-</blockquote>
-
-Modify <a href="http://eel.is/c++draft/facet.num.put.members">[**facet.num.put.members**]</a> as follows:
-
-<blockquote>
-<b>26.4.2.2.1 `num_put` members <span style="float: right;">[facet.num.put.members]</span></b>
-
-<code><pre>
-iter_type put(iter_type out, ios_base&amp; str, char_type fill, bool val) const;
-iter_type put(iter_type out, ios_base&amp; str, char_type fill, long val) const;
-iter_type put(iter_type out, ios_base&amp; str, char_type fill, long long val) const;
-iter_type put(iter_type out, ios_base&amp; str, char_type fill, unsigned long val) const;
-iter_type put(iter_type out, ios_base&amp; str, char_type fill, unsigned long long val) const;
-iter_type put(iter_type out, ios_base&amp; str, char_type fill, double val) const;
-iter_type put(iter_type out, ios_base&amp; str, char_type fill, long double val) const;
-iter_type put(iter_type out, ios_base&amp; str, char_type fill, const<span class="ins"> volatile</span> void* val) const;
-</code></pre>
-
-<div class="numbered">
-*Returns:* `do_put(out, str, fill, val)`.
-</div>
-</blockquote>
-
-Modify <a href="http://eel.is/c++draft/facet.num.put.virtuals">[**facet.num.put.virtuals**]</a> as follows:
-
-<blockquote>
-<b>26.4.2.2.2 `num_put` virtual functions <span style="float: right;">[facet.num.put.virtuals]</span></b>
-
-<code><pre>
-iter_type do_put(iter_type out, ios_base&amp; str, char_type fill, long val) const;
-iter_type do_put(iter_type out, ios_base&amp; str, char_type fill, long long val) const;
-iter_type do_put(iter_type out, ios_base&amp; str, char_type fill, unsigned long val) const;
-iter_type do_put(iter_type out, ios_base&amp; str, char_type fill, unsigned long long val) const;
-iter_type do_put(iter_type out, ios_base&amp; str, char_type fill, double val) const;
-iter_type do_put(iter_type out, ios_base&amp; str, char_type fill, long double val) const;
-iter_type do_put(iter_type out, ios_base&amp; str, char_type fill, const<span class="ins"> volatile</span> void* val) const;
-</code></pre>
-</blockquote>
-
-Modify <a href="http://eel.is/c++draft/ostream">[**ostream**]</a> as follows:
-
-<blockquote>
-<b>27.7.5.1 Class template `basic_ostream` <span style="float: right;">[ostream]</span></b>
-
-<pre><code>
-namespace std {
-  template&lt;class charT, class traits = char_traits&lt;charT&gt;&gt;
-  class basic_ostream : virtual public basic_ios&lt;charT, traits&gt; {
-  public:
-    <i>// ...</i>
-
-    <i>// 27.7.5.2, formatted output</i>
-    <i>// ...</i>
-    basic_ostream&lt;charT, traits&gt;&amp;
-      operator&lt;&lt;(basic_ostream&lt;charT, traits&gt;&amp; (*pf)(basic_ostream&lt;charT, traits&gt;&amp;));
-    basic_ostream&lt;charT, traits&gt;&amp;
-      operator&lt;&lt;(basic_ios&lt;charT, traits&gt;&amp; (*pf)(basic_ios&lt;charT, traits&gt;&amp;));
-    basic_ostream&lt;charT, traits&gt;&amp;
-      operator&lt;&lt;(ios_base&amp; (*pf)(ios_base&amp;));
-
-    basic_ostream&lt;charT, traits&gt;&amp; operator&lt;&lt;(bool n);
-    basic_ostream&lt;charT, traits&gt;&amp; operator&lt;&lt;(short n);
-    basic_ostream&lt;charT, traits&gt;&amp; operator&lt;&lt;(unsigned short n);
-    basic_ostream&lt;charT, traits&gt;&amp; operator&lt;&lt;(int n);
-    basic_ostream&lt;charT, traits&gt;&amp; operator&lt;&lt;(unsigned int n);
-    basic_ostream&lt;charT, traits&gt;&amp; operator&lt;&lt;(long n);
-    basic_ostream&lt;charT, traits&gt;&amp; operator&lt;&lt;(unsigned long n);
-    basic_ostream&lt;charT, traits&gt;&amp; operator&lt;&lt;(long long n);
-    basic_ostream&lt;charT, traits&gt;&amp; operator&lt;&lt;(unsigned long long n);
-    basic_ostream&lt;charT, traits&gt;&amp; operator&lt;&lt;(float f);
-    basic_ostream&lt;charT, traits&gt;&amp; operator&lt;&lt;(double f);
-    basic_ostream&lt;charT, traits&gt;&amp; operator&lt;&lt;(long double f);
-
-    basic_ostream&lt;charT, traits&gt;&amp; operator&lt;&lt;(const<span class="ins"> volatile</span> void* p);
-    basic_ostream&lt;charT, traits&gt;&amp; operator&lt;&lt;(nullptr_t);
-    basic_ostream&lt;charT, traits&gt;&amp; operator&lt;&lt;(basic_streambuf&lt;char_type, traits&gt;* sb);
-
-    <i>// ...</i>
-  };
-}
-</code></pre>
-</blockquote>
 
 Modify <a href="http://eel.is/c++draft/ostream.inserters.arithmetic">[**ostream.inserters.arithmetic**]</a> as follows:
 
@@ -303,7 +180,7 @@ operator<<(unsigned long long val);
 operator<<(float val);
 operator<<(double val);
 operator<<(long double val);
-operator<<(const<span class="ins"> volatile</span> void* val);
+operator<<(const void* val);
 </code></pre>
 
 <div class="numbered">
@@ -312,8 +189,7 @@ numeric formatting and parsing.
 These inserter functions use the imbued `locale` value to perform numeric
 formatting.
 When `val` is of type `bool`, `long`, `unsigned long`, `long long`, `unsigned
-long long`, `double`, `long double`, or
-<code>const<span class="ins"> volatile</span> void*</code>, the formatting
+long long`, `double`, `long double`, or `const void*`, the formatting
 conversion occurs as if it performed the following code fragment:
 
 <xmp>
@@ -322,5 +198,18 @@ bool failed = use_facet<
     >(getloc()).put(*this, *this, fill(), val).failed();
 </xmp>
 </div>
+
+<div class="ins">
+<xmp>
+basic_ostream<charT, traits>& operator<<(const volatile void* val);
+</xmp>
+
+<div class="numbered">
+*Effects:* Equivalent to `return operator<<(const_cast<const void*>(val));`
+</div>
 </blockquote>
 
+# Acknowledgements # {#acks}
+
+Thanks to JF Bastien, Marshall Clow, Billy O'Neal, and Louis Dionne for
+providing early review and feedback of this paper.
