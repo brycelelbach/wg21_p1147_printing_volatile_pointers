@@ -1,5 +1,5 @@
 <!--
-Copyright (c) 2018 NVIDIA Corporation 
+Copyright (c) 2018 NVIDIA Corporation
 Author: Bryce Adelstein Lelbach <brycelelbach@gmail.com>
 
 Distributed under the Boost Software License v1.0 (boost.org/LICENSE_1_0.txt)
@@ -12,10 +12,11 @@ Revision: 0
 Status: P
 Group: WG21
 Audience: LEWG
-URL: https://wg21.link/P1147R0
+URL: https://wg21.link/P1147
 !Source: <a href="https://github.com/brycelelbach/wg21_p1147_printing_volatile_pointers/blob/master/printing_volatile_pointers.bs">github.com/wg21_p1147_printing_volatile_pointers/blob/master/printing_volatile_pointers.bs</a>
 Issue Tracking: GitHub https://github.com/brycelelbach/wg21_p1147_printing_volatile_pointers/issues
 Editor: Bryce Adelstein Lelbach, NVIDIA https://nvidia.com, brycelelbach@gmail.com
+Metadata Order: Editor, Source, Issue Tracking, Project, Audience
 Markup Shorthands: markdown yes
 No Abstract: yes
 Toggle Diffs: no
@@ -159,57 +160,85 @@ points to, we are just printing the value of the pointer itself.
 
 # Wording # {#wording}
 
-NOTE: The � character is used to denote a placeholder section number which the
-editor shall determine.
-
-Modify <a href="http://eel.is/c++draft/ostream.inserters.arithmetic">[**ostream.inserters.arithmetic**]</a> as follows:
+Modify <a href="http://eel.is/c++draft/ostream.general">[**ostream.general**]</a> as follows:
 
 <blockquote>
-<b>27.7.5.2.2 Arithmetic inserters <span style="float: right;">[ostream.inserters.arithmetic]</span></b>
+<b>29.7.5.2.1 General <span style="float: right;">[ostream.general]</span></b>
 
 <pre><code>
-operator<<(bool val);
-operator<<(short val);
-operator<<(unsigned short val);
-operator<<(int val);
-operator<<(unsigned int val);
-operator<<(long val);
-operator<<(unsigned long val);
-operator<<(long long val);
-operator<<(unsigned long long val);
-operator<<(float val);
-operator<<(double val);
-operator<<(long double val);
-operator<<(const void* val);
+namespace std {
+  template<class charT, class traits = char_traits<charT>>
+  class basic_ostream : virtual public basic_ios<charT, traits> {
+  public:
+    // ...
+
+    // [ostream.formatted], formatted output
+    basic_ostream& operator<<(basic_ostream& (*pf)(basic_ostream&));
+    basic_ostream& operator<<(basic_ios<charT, traits>& (*pf)(basic_ios<charT, traits>&));
+    basic_ostream& operator<<(ios_base& (*pf)(ios_base&));
+
+    basic_ostream& operator<<(bool n);
+    basic_ostream& operator<<(short n);
+    basic_ostream& operator<<(unsigned short n);
+    basic_ostream& operator<<(int n);
+    basic_ostream& operator<<(unsigned int n);
+    basic_ostream& operator<<(long n);
+    basic_ostream& operator<<(unsigned long n);
+    basic_ostream& operator<<(long long n);
+    basic_ostream& operator<<(unsigned long long n);
+    basic_ostream& operator<<(float f);
+    basic_ostream& operator<<(double f);
+    basic_ostream& operator<<(long double f);
+
+    basic_ostream& operator<<(const void* p);
+<span class="ins">    basic_ostream& operator<<(const volatile void* val);</span>
+    basic_ostream& operator<<(nullptr_t);
+    basic_ostream& operator<<(basic_streambuf<char_type, traits>* sb);
+
+    // ...
+  };
+
+  // ...
+}
+</code></pre>
+</blockquote>
+
+Modify <a href="http://eel.is/c++draft/ostream.inserters">[**ostream.inserters**]</a> as follows:
+
+<blockquote>
+<b>29.7.5.3.3 <code>basic_ostream::operator<<</code> <span style="float: right;">[ostream.inserters]</span></b>
+
+...
+
+<pre><code>
+basic_ostream& operator<<(nullptr_t);
 </code></pre>
 
-<div class="numbered">
-*Effects:* The classes `num_get<>` and `num_put<>` handle locale-dependent
-numeric formatting and parsing.
-These inserter functions use the imbued `locale` value to perform numeric
-formatting.
-When `val` is of type `bool`, `long`, `unsigned long`, `long long`, `unsigned
-long long`, `double`, `long double`, or `const void*`, the formatting
-conversion occurs as if it performed the following code fragment:
+<div class="numbered" style="counter-reset: paragraph 10">
+*Effects:* Equivalent to:
 
-<xmp>
-bool failed = use_facet<
-  num_put<charT, ostreambuf_iterator<charT, traits>>
-    >(getloc()).put(*this, *this, fill(), val).failed();
-</xmp>
+<pre><code>
+return *this << s;
+</code></pre>
+
+where `s` is an implementation-defined NTCTS.
 </div>
 
 <div class="ins">
-<xmp>
-basic_ostream<charT, traits>& operator<<(const volatile void* val);
-</xmp>
+<pre><code>
+basic_ostream& operator<<(const volatile void* val);
+</code></pre>
 
 <div class="numbered">
-*Effects:* Equivalent to `return operator<<(const_cast<const void*>(val));`
+*Effects:* Equivalent to:
+
+<pre><code>
+return operator<<(const_cast<const void*>(val));
+</code></pre>
 </div>
 </blockquote>
 
-# Acknowledgements # {#acks}
+# Acknowledgements # {#acknowledgements}
 
-Thanks to JF Bastien, Marshall Clow, Billy O'Neal, and Louis Dionne for
-providing early review and feedback of this paper.
+Thanks to JF Bastien, Marshall Clow, Billy O'Neal, Louis Dionne, Jonathan Wakely,
+and Jeff Garland for reviewing and providing feedback on this paper.
