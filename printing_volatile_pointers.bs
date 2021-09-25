@@ -7,9 +7,9 @@ Distributed under the Boost Software License v1.0 (boost.org/LICENSE_1_0.txt)
 <pre class='metadata'>
 Title: Printing `volatile` Pointers
 H1: Printing <code>volatile</code> Pointers
-Shortname: P1147
-Revision: 1
-Status: P
+Shortname: D1147
+Revision: 2
+Status: D
 Group: WG21
 Audience: LEWG
 URL: https://wg21.link/P1147
