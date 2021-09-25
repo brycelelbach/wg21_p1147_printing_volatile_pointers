@@ -8,7 +8,7 @@ Distributed under the Boost Software License v1.0 (boost.org/LICENSE_1_0.txt)
 Title: Printing `volatile` Pointers
 H1: Printing <code>volatile</code> Pointers
 Shortname: P1147
-Revision: 0
+Revision: 1
 Status: P
 Group: WG21
 Audience: LEWG
@@ -167,14 +167,14 @@ Modify <a href="http://eel.is/c++draft/ostream.general">[**ostream.general**]</a
 
 <pre><code>
 namespace std {
-  template<class charT, class traits = char_traits<charT>>
-  class basic_ostream : virtual public basic_ios<charT, traits> {
+  template&lt;class charT, class traits = char_traits&lt;charT&gt;&gt;
+  class basic_ostream : virtual public basic_ios&lt;charT, traits&gt; {
   public:
     // ...
 
     // [ostream.formatted], formatted output
     basic_ostream& operator<<(basic_ostream& (*pf)(basic_ostream&));
-    basic_ostream& operator<<(basic_ios<charT, traits>& (*pf)(basic_ios<charT, traits>&));
+    basic_ostream& operator<<(basic_ios&lt;charT, traits&gt;& (*pf)(basic_ios&lt;charT, traits&gt;&));
     basic_ostream& operator<<(ios_base& (*pf)(ios_base&));
 
     basic_ostream& operator<<(bool n);
@@ -193,7 +193,7 @@ namespace std {
     basic_ostream& operator<<(const void* p);
 <span class="ins">    basic_ostream& operator<<(const volatile void* val);</span>
     basic_ostream& operator<<(nullptr_t);
-    basic_ostream& operator<<(basic_streambuf<char_type, traits>* sb);
+    basic_ostream& operator<<(basic_streambuf&lt;char_type, traits&gt;* sb);
 
     // ...
   };
@@ -233,7 +233,7 @@ basic_ostream& operator<<(const volatile void* val);
 *Effects:* Equivalent to:
 
 <pre><code>
-return operator<<(const_cast<const void*>(val));
+return operator<<(const_cast&lt;const void*&gt;(val));
 </code></pre>
 </div>
 </blockquote>
